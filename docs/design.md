@@ -51,10 +51,9 @@ stateDiagram-v2
     ENTREGADO --> VISTO : instructor abre la entrega
     VISTO --> EN_REVISION : instructor inicia revisión
     EN_REVISION --> CORREGIDO : instructor publica nota + feedback
-    CORREGIDO --> BORRADOR : reentrega solicitada
-    ENTREGADO --> BORRADOR : devuelta sin calificar
-    VISTO --> BORRADOR : devuelta sin calificar
-    EN_REVISION --> BORRADOR : devuelta sin calificar
+    CORREGIDO --> BORRADOR : alumno reentrega tras feedback
+    VISTO --> BORRADOR : instructor devuelve sin calificar
+    EN_REVISION --> BORRADOR : instructor devuelve sin calificar
 ```
 
 ```mermaid
@@ -132,7 +131,7 @@ flowchart TB
 
 ## Entidades centrales (preliminar)
 
-- **Entrega** — estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `ENTREGADO`, `VISTO` o `EN_REVISION`, el instructor puede devolver directamente a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
+- **Entrega** — estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
 - **Consulta** — ciclo propio: `REALIZADA → RESPONDIDA`
 - **Título** — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`
 
