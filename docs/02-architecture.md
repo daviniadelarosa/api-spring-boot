@@ -11,6 +11,8 @@
 | Tiempo real hacia el cliente | WebSockets | Server-Sent Events (SSE) | SSE es unidireccional (servidor→cliente). Aquí hace falta bidireccionalidad real: ej. un instructor marca "revisando ahora" para evitar que otro instructor duplique trabajo. |
 | Notificaciones a Instructor sobre certificados | Informe mensual agregado | Notificación individual por certificado emitido | No todo evento necesita ser en tiempo real. Saber cuándo *no* usar push inmediato es tan parte del diseño como saber cuándo sí. |
 | Entrega del certificado | PDF generado + envío por email | Solo notificación WebSocket sin documento | El certificado es un documento que debe persistir y poder reenviarse, no un aviso efímero. El email es canal de *entrega del documento*, no un canal de notificación paralelo — el WebSocket sigue siendo el único aviso en tiempo real de que "tu certificado ya está". |
+| Persistencia | PostgreSQL (relacional) | NoSQL (ej. MongoDB) | El dominio depende de relaciones estables (Alumno↔GrupoAsignatura↔Instructor), transacciones atómicas (publicar corrección + disparar evento) e informes agregados con joins — todo terreno natural de SQL. NoSQL no aporta nada aquí y metería complejidad sin beneficio, el mismo criterio que descartó Kafka. |
+| Claves primarias | UUID | Long autoincremental | No predecible/enumerable (un Long secuencial permite deducir volumen de datos o iterar IDs). Generable sin coordinación central, relevante si el sistema crece a varios servicios — coherente con ya usar RabbitMQ pensando en esa posibilidad. El coste de rendimiento frente a Long es marginal a la escala de este proyecto. |
 
 ## Principio rector
 
