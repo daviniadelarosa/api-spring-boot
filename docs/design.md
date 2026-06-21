@@ -18,6 +18,7 @@ El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, 
 | Mensajería entre eventos | RabbitMQ | Kafka | Kafka está pensado para volúmenes y streaming que este dominio no tiene. Usarlo aquí sería sobre-ingeniería. |
 | Tiempo real hacia el cliente | WebSockets | Server-Sent Events (SSE) | SSE es unidireccional (servidor→cliente). Aquí hace falta bidireccionalidad real: ej. un instructor marca "revisando ahora" para evitar que otro instructor duplique trabajo. |
 | Notificaciones a Instructor sobre certificados | Informe mensual agregado | Notificación individual por certificado emitido | No todo evento necesita ser en tiempo real. Saber cuándo *no* usar push inmediato es tan parte del diseño como saber cuándo sí. |
+| Entrega del certificado | PDF generado + envío por email | Solo notificación WebSocket sin documento | El certificado es un documento que debe persistir y poder reenviarse, no un aviso efímero. El email es canal de *entrega del documento*, no un canal de notificación paralelo — el WebSocket sigue siendo el único aviso en tiempo real de que "tu certificado ya está". |
 
 ## Actores
 
@@ -118,7 +119,7 @@ flowchart TB
 | `EntregaDevueltaABorrador` | Instructor | Alumno (WebSocket) — motivo del rechazo, sin nota |
 | `ConsultaRealizada` | Alumno | Instructor (WebSocket) |
 | `RespuestaConsultaPublicada` | Instructor | Alumno (WebSocket) |
-| `TituloEmitido` | Administración (tras validar) | Alumno (WebSocket) — certificado de la asignatura + se acumula para informe mensual de Instructor |
+| `TituloEmitido` | Administración (tras validar) | Alumno (WebSocket, aviso inmediato) + Alumno (email con PDF del certificado adjunto) + se acumula para informe mensual de Instructor |
 
 ### Disparados por el Scheduler (basados en tiempo)
 
@@ -135,7 +136,7 @@ flowchart TB
 
 - **Entrega** — estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
 - **Consulta** — ciclo propio: `REALIZADA → RESPONDIDA`
-- **Título** (certificado por asignatura) — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera.
+- **Título** (certificado por asignatura) — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera. Al emitirse, se genera un PDF del certificado y se envía por email al alumno como adjunto, además del aviso WebSocket inmediato.
 
 ## Pendiente de decidir
 
@@ -144,3 +145,5 @@ flowchart TB
 - Si el proceso de título necesita un paso intermedio de revisión manual o se valida en bloque
 - Si `EntregaVista` debe empujarse por WebSocket igual que el resto de eventos transaccionales, o si basta con que quede reflejado al consultar el dashboard (es una señal más débil que una corrección real, y empujarla en tiempo real podría ser ruido innecesario para el alumno)
 - Si `EntregaDevueltaABorrador` debe llevar un motivo obligatorio (texto libre) para que el alumno entienda qué falló, o basta con el cambio de estado
+- Qué librería de generación de PDF usar en Spring (ej. iText, Apache PDFBox, o plantilla HTML→PDF) y qué datos mínimos lleva el certificado (nombre, asignatura, fecha, posible firma/sello digital)
+- Qué servicio de envío de email usar (SMTP propio vía Spring Mail, o un proveedor externo tipo SendGrid/Mailgun) y cómo manejar reintentos si el envío falla
