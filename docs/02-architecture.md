@@ -13,6 +13,8 @@
 | Entrega del certificado | PDF generado + envío por email | Solo notificación WebSocket sin documento | El certificado es un documento que debe persistir y poder reenviarse, no un aviso efímero. El email es canal de *entrega del documento*, no un canal de notificación paralelo — el WebSocket sigue siendo el único aviso en tiempo real de que "tu certificado ya está". |
 | Persistencia | PostgreSQL (relacional) | NoSQL (ej. MongoDB) | El dominio depende de relaciones estables (Alumno↔GrupoAsignatura↔Instructor), transacciones atómicas (publicar corrección + disparar evento) e informes agregados con joins — todo terreno natural de SQL. NoSQL no aporta nada aquí y metería complejidad sin beneficio, el mismo criterio que descartó Kafka. |
 | Claves primarias | UUID | Long autoincremental | No predecible/enumerable (un Long secuencial permite deducir volumen de datos o iterar IDs). Generable sin coordinación central, relevante si el sistema crece a varios servicios — coherente con ya usar RabbitMQ pensando en esa posibilidad. El coste de rendimiento frente a Long es marginal a la escala de este proyecto. |
+| Estados (Entrega, Título) | Enum de Java + tipo `ENUM` nativo de PostgreSQL | Enum de Java + columna `VARCHAR` | Refuerza la integridad a nivel de base de datos, no solo en código: si algo escribe directamente en la tabla o hay un bug, la BD rechaza un valor que no sea uno de los estados válidos, en vez de aceptar cualquier texto. |
+| Gestión del esquema de BD | Flyway (migraciones versionadas) | Hibernate `ddl-auto` automático | Code-first con Hibernate automático es cómodo en prototipado pero arriesgado en cuanto el proyecto crece: puede generar cambios destructivos sin avisar (ej. renombrar un campo se interpreta como borrar+crear), no deja historial versionado de qué cambió y por qué, y no garantiza que entornos distintos (local/test/producción) queden idénticos. Flyway aplica migraciones SQL numeradas con historial completo — mismo concepto que Git, aplicado al esquema. |
 
 ## Principio rector
 
@@ -38,5 +40,13 @@ Caso concreto que ilustra por qué hace falta la segunda capa: con varios `Grupo
 
 - Qué librería de generación de PDF usar (ej. iText, Apache PDFBox, o plantilla HTML→PDF)
 - Qué servicio de envío de email usar (SMTP propio vía Spring Mail, o un proveedor externo tipo SendGrid/Mailgun) y cómo manejar reintentos si el envío falla
-- Mecanismo de autenticación (JWT es la opción estándar) y cómo se valida el token en cada petición
 - Dónde vive exactamente la comprobación de pertenencia a grupo: en el Service de cada dominio, o centralizada en algún componente común reutilizable
+
+## Seguridad — sesión pendiente en profundidad
+
+Identificado como laguna real a trabajar con calma, no solo como casilla técnica. Cuando se aborde, cubrir desde cero (sin asumir conocimiento previo):
+
+- Mecanismo de autenticación: qué es JWT, cómo se genera, cómo se valida en cada petición
+- Spring Security: filtros, `@PreAuthorize`, cómo se configuran los roles
+- La distinción accesos/acciones ya cerrada arriba, llevada a implementación real
+- Buenas prácticas básicas: hashing de contraseñas, expiración de tokens, CORS
