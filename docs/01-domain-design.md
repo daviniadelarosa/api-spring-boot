@@ -136,7 +136,6 @@ flowchart TB
 
 ## Pendiente de decidir
 
-- Modelo de permisos por rol (especialmente para Administración, que necesita vistas agregadas sin acceso al detalle de cada corrección)
 - Si el proceso de título necesita un paso intermedio de revisión manual o se valida en bloque
 - Si `EntregaVista` debe empujarse por WebSocket igual que el resto de eventos transaccionales, o si basta con que quede reflejado al consultar el dashboard (es una señal más débil que una corrección real, y empujarla en tiempo real podría ser ruido innecesario para el alumno)
 - Si `EntregaDevueltaABorrador` debe llevar un motivo obligatorio (texto libre) para que el alumno entienda qué falló, o basta con el cambio de estado
@@ -148,3 +147,4 @@ flowchart TB
 - **Sin co-docencia**: cada grupo de asignatura tiene un único instructor asignado. No existe el caso de "avisar a otro instructor del mismo grupo" porque esa figura no existe.
 - **`RevisionIniciada` notifica al Alumno, no a otro instructor**: es informativo para que el alumno sepa que su entrega está siendo trabajada, sin necesidad de que exista un segundo instructor al que avisar.
 - **Entidad `GrupoAsignatura` definida**: vincula Asignatura + Instructor (único) + Alumnos matriculados. Resuelve a qué grupo pertenece cada Entrega/Consulta/Título.
+- **Modelo de permisos de Administración, acotado**: puede ver la **calificación numérica** de cualquier entrega (necesario para informes agregados y validar elegibilidad de certificados), pero **no tiene acceso al feedback cualitativo** del instructor — ese sigue siendo terreno exclusivo de la conversación Alumno-Instructor. Además, Administración configura los plazos de entrega por asignatura/módulo (fecha límite que alimenta al Scheduler para `PlazoPorVencer`, `BorradorSinEnviarDetectado` y la detección de plazos vencidos) y valida la emisión de certificados.

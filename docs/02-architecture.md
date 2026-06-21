@@ -22,4 +22,4 @@ Esto se traduce en dos flujos de eventos con productores distintos (ver [`01-dom
 
 - Qué librería de generación de PDF usar (ej. iText, Apache PDFBox, o plantilla HTML→PDF)
 - Qué servicio de envío de email usar (SMTP propio vía Spring Mail, o un proveedor externo tipo SendGrid/Mailgun) y cómo manejar reintentos si el envío falla
-- Modelo de permisos por rol (especialmente para Administración, que necesita vistas agregadas sin acceso al detalle de cada corrección)
+- Implementación técnica del modelo de permisos por rol ya cerrado en [`01-domain-design.md`](01-domain-design.md#decisiones-cerradas-para-no-reabrir) — método de Spring Security a usar (`@PreAuthorize`, filtros, etc.)
