@@ -4,9 +4,9 @@
 
 ## Contexto
 
-API backend para una institución educativa (universidad). Gestiona el ciclo de vida de entregas de ejercicios/módulos, con reacciones en tiempo real ante eventos del sistema, y procesos periódicos automatizados.
+API backend para una institución educativa (universitaria). Gestiona el ciclo de vida de entregas de ejercicios/corecciones/titulaciones, con reacciones en tiempo real ante eventos del sistema, y procesos periódicos automatizados.
 
-El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, cuándo debe ser inmediato y cuándo puede ser agregado**, y modelar eso con una arquitectura de eventos coherente en lugar de lógica condicional dispersa por el código.
+El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, cuándo debe ser inmediato y cuándo puede ser agregado**, y modelar eso con una arquitectura de eventos coherente en lugar de lógica condicional dispersa por el código, de manera eficiente y coherente con la tecnología actual.
 
 ## Decisiones de arquitectura
 
