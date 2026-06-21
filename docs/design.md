@@ -4,7 +4,9 @@
 
 ## Contexto
 
-API backend para una institución educativa (universitaria). Gestiona el ciclo de vida de entregas de ejercicios/corecciones/titulaciones, con reacciones en tiempo real ante eventos del sistema, y procesos periódicos automatizados.
+API backend para una institución educativa (universitaria). Gestiona el ciclo de vida de entregas de ejercicios/correcciones/certificados de asignatura, con reacciones en tiempo real ante eventos del sistema, y procesos periódicos automatizados.
+
+> Nota de alcance: "título" en este documento se refiere siempre a un **certificado de finalización por asignatura/módulo**, no a un título de carrera completa — eso último complicaría el dominio con conceptos (planes de estudio, requisitos entre asignaturas) que quedan fuera del alcance de este proyecto.
 
 El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, cuándo debe ser inmediato y cuándo puede ser agregado**, y modelar eso con una arquitectura de eventos coherente en lugar de lógica condicional dispersa por el código, de manera eficiente y coherente con la tecnología actual.
 
@@ -15,13 +17,13 @@ El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, 
 | Mensajería entre eventos | RabbitMQ | Event Bus interno de Spring (`ApplicationEventPublisher`) | El bus interno es síncrono y vive solo dentro del proceso: si el servicio cae, los eventos pendientes se pierden, y no escala a varias instancias. RabbitMQ persiste mensajes y permite crecer a varios servicios sin rediseñar nada. |
 | Mensajería entre eventos | RabbitMQ | Kafka | Kafka está pensado para volúmenes y streaming que este dominio no tiene. Usarlo aquí sería sobre-ingeniería. |
 | Tiempo real hacia el cliente | WebSockets | Server-Sent Events (SSE) | SSE es unidireccional (servidor→cliente). Aquí hace falta bidireccionalidad real: ej. un instructor marca "revisando ahora" para evitar que otro instructor duplique trabajo. |
-| Notificaciones a Instructor sobre títulos | Informe mensual agregado | Notificación individual por título emitido | No todo evento necesita ser en tiempo real. Saber cuándo *no* usar push inmediato es tan parte del diseño como saber cuándo sí. |
+| Notificaciones a Instructor sobre certificados | Informe mensual agregado | Notificación individual por certificado emitido | No todo evento necesita ser en tiempo real. Saber cuándo *no* usar push inmediato es tan parte del diseño como saber cuándo sí. |
 
 ## Actores
 
 - **Alumno** — entrega ejercicios, consulta progreso y notas, plantea dudas
 - **Instructor** — corrige entregas, gestiona su grupo, responde consultas
-- **Personal de Administración** — gestiona matriculaciones y permisos, supervisa informes agregados, valida emisión de títulos
+- **Personal de Administración** — gestiona matriculaciones y permisos, supervisa informes agregados, valida emisión de certificados de asignatura
 - **Sistema / Scheduler** — genera eventos automáticos basados en tiempo, no en una acción directa de un actor
 
 ## Principio de diseño: eventos transaccionales vs. eventos de scheduler
@@ -61,7 +63,7 @@ flowchart TB
     subgraph S["Eventos de scheduler"]
         SCH[Scheduler] -->|plazo, borrador sin enviar| AL2[Alumno]
         SCH -->|recuento de pendientes| IN2[Instructor]
-        SCH -->|informe mensual, elegibilidad de títulos| AD[Administración]
+        SCH -->|informe mensual, elegibilidad de certificados| AD[Administración]
     end
 ```
 
@@ -76,7 +78,7 @@ flowchart TB
 6. Recibir notificación en tiempo real cuando su entrega es vista, corregida, o devuelta a borrador por el instructor
 7. Solicitar/realizar una reentrega tras feedback
 8. Plantear una consulta/duda a su instructor → dispara `ConsultaRealizada`
-9. Recibir notificación cuando su título es emitido
+9. Recibir notificación cuando se le emite el certificado de una asignatura completada
 
 ### Instructor
 10. Ver una entrega de su grupo (la apertura marca automáticamente como vista) → dispara `EntregaVista`
@@ -85,14 +87,14 @@ flowchart TB
 13. Devolver una entrega a borrador, sin calificar, cuando el contenido es incorrecto o el alumno se ha confundido → dispara `EntregaDevueltaABorrador`
 14. Recibir notificación en tiempo real de nuevas entregas de su grupo
 15. Recibir y responder consultas de alumnos → dispara `RespuestaConsultaPublicada`
-16. Consultar su informe mensual (incluye recuento de pendientes histórico y títulos emitidos a sus alumnos)
+16. Consultar su informe mensual (incluye recuento de pendientes histórico y certificados de asignatura emitidos a sus alumnos)
 
 ### Personal de Administración
 17. Dar de alta/baja alumnos e instructores, asignar alumnos a grupos/instructores
 18. Consultar informe agregado de progreso por curso/módulo
 19. Configurar plazos de entrega por módulo (alimenta al Scheduler)
 20. Recibir alerta cuando un grupo entero muestra inactividad anómala
-21. Revisar candidatos a título (`TituloElegibilidadDetectada`) y validar la emisión real (`TituloEmitido`)
+21. Revisar candidatos a certificado de asignatura (`TituloElegibilidadDetectada`) y validar la emisión real (`TituloEmitido`)
 
 ### Sistema / Scheduler
 22. Detectar alumnos sin actividad en X días → `InactividadDetectada`, notifica al instructor correspondiente
@@ -101,7 +103,7 @@ flowchart TB
 25. Detectar entregas abandonadas en borrador → `BorradorSinEnviarDetectado`, notifica al alumno
 26. Generar recuento periódico de pendientes por instructor → `RecuentoPendientesActualizado`
 27. Generar informe mensual agregado para Administración → `InformeMensualGenerado`
-28. Detectar candidatos a título mensualmente → `TituloElegibilidadDetectada`
+28. Detectar candidatos a certificado de asignatura mensualmente → `TituloElegibilidadDetectada`
 
 ## Catálogo de eventos
 
@@ -116,7 +118,7 @@ flowchart TB
 | `EntregaDevueltaABorrador` | Instructor | Alumno (WebSocket) — motivo del rechazo, sin nota |
 | `ConsultaRealizada` | Alumno | Instructor (WebSocket) |
 | `RespuestaConsultaPublicada` | Instructor | Alumno (WebSocket) |
-| `TituloEmitido` | Administración (tras validar) | Alumno (WebSocket) + se acumula para informe mensual de Instructor |
+| `TituloEmitido` | Administración (tras validar) | Alumno (WebSocket) — certificado de la asignatura + se acumula para informe mensual de Instructor |
 
 ### Disparados por el Scheduler (basados en tiempo)
 
@@ -133,7 +135,7 @@ flowchart TB
 
 - **Entrega** — estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
 - **Consulta** — ciclo propio: `REALIZADA → RESPONDIDA`
-- **Título** — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`
+- **Título** (certificado por asignatura) — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera.
 
 ## Pendiente de decidir
 
