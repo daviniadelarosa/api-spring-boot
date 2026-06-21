@@ -86,7 +86,7 @@ flowchart TB
 11. Marcar una entrega como "en revisión" (evita duplicar trabajo con otro instructor) → dispara `RevisionIniciada`
 12. Publicar una corrección con feedback → dispara `CorreccionPublicada`
 13. Devolver una entrega a borrador, sin calificar, cuando el contenido es incorrecto o el alumno se ha confundido → dispara `EntregaDevueltaABorrador`
-14. Recibir notificación en tiempo real de nuevas entregas de su grupo
+14. Recibir notificación en tiempo real de nuevas entregas de sus grupo
 15. Recibir y responder consultas de alumnos → dispara `RespuestaConsultaPublicada`
 16. Consultar su informe mensual (incluye recuento de pendientes histórico y certificados de asignatura emitidos a sus alumnos)
 
@@ -134,9 +134,11 @@ flowchart TB
 
 ## Entidades centrales (preliminar)
 
-- **Entrega** — estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
-- **Consulta** — ciclo propio: `REALIZADA → RESPONDIDA`
-- **Título** (certificado por asignatura) — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera. Al emitirse, se genera un PDF del certificado y se envía por email al alumno como adjunto, además del aviso WebSocket inmediato.
+- **Alumno** — matriculado en una o varias asignaturas (cada una con su propio grupo e instructor). Tiene entregas, consultas y certificados asociados.
+- **Instructor** — imparte una o varias asignaturas; por cada una gestiona un grupo de alumnos (sin co-docencia: un único instructor por grupo de asignatura). Recibe entregas y consultas de los alumnos de sus grupos.
+- **Entrega** — pertenece a un Alumno, en el contexto de una asignatura/módulo concreto; corregida por el Instructor de ese grupo. Estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
+- **Consulta** — vincula un Alumno con el Instructor de la asignatura correspondiente. Ciclo propio: `REALIZADA → RESPONDIDA`
+- **Título** (certificado por asignatura) — vincula un Alumno con la asignatura completada; validado por Administración. Ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera. Al emitirse, se genera un PDF del certificado y se envía por email al alumno como adjunto, además del aviso WebSocket inmediato.
 
 ## Pendiente de decidir
 
