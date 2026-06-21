@@ -134,11 +134,13 @@ flowchart TB
 
 ## Entidades centrales (preliminar)
 
-- **Alumno** — matriculado en una o varias asignaturas (cada una con su propio grupo e instructor). Tiene entregas, consultas y certificados asociados.
-- **Instructor** — imparte una o varias asignaturas; por cada una gestiona un grupo de alumnos (sin co-docencia: un único instructor por grupo de asignatura). Recibe entregas y consultas de los alumnos de sus grupos.
-- **Entrega** — pertenece a un Alumno, en el contexto de una asignatura/módulo concreto; corregida por el Instructor de ese grupo. Estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
-- **Consulta** — vincula un Alumno con el Instructor de la asignatura correspondiente. Ciclo propio: `REALIZADA → RESPONDIDA`
-- **Título** (certificado por asignatura) — vincula un Alumno con la asignatura completada; validado por Administración. Ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera. Al emitirse, se genera un PDF del certificado y se envía por email al alumno como adjunto, además del aviso WebSocket inmediato.
+- **Asignatura** — entidad propia (no texto libre): id, nombre, código. Necesaria porque participa en lógica de negocio real, no solo visual — informes agregados (caso de uso 18), plazos configurables por módulo (caso de uso 19) y certificados (Título) todos referencian una Asignatura concreta, no una cadena de texto que podría escribirse de formas distintas.
+- **GrupoAsignatura** — vincula una Asignatura con un Instructor (uno solo, sin co-docencia) y los Alumnos matriculados en ese grupo concreto. Es la entidad que resuelve "a qué grupo pertenece esta Entrega/Consulta", y la que permite que un Instructor tenga varios grupos (uno por asignatura que imparte) y un Alumno esté en varios grupos (uno por asignatura en la que está matriculado).
+- **Alumno** — matriculado en uno o varios `GrupoAsignatura`. Tiene entregas, consultas y certificados asociados.
+- **Instructor** — imparte una o varias asignaturas; por cada una gestiona un `GrupoAsignatura` (sin co-docencia: un único instructor por grupo). Recibe entregas y consultas de los alumnos de sus grupos.
+- **Entrega** — pertenece a un Alumno, en el contexto de un `GrupoAsignatura` concreto; corregida por el Instructor de ese grupo. Estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → VISTO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`. Desde `VISTO` o `EN_REVISION` (nunca desde `ENTREGADO` directamente, porque el instructor necesita haberla abierto/visto primero), puede devolver a `BORRADOR` sin pasar por `CORREGIDO` (caso de entrega incorrecta o confundida, sin calificación asociada).
+- **Consulta** — vincula un Alumno con el Instructor del `GrupoAsignatura` correspondiente. Ciclo propio: `REALIZADA → RESPONDIDA`
+- **Título** (certificado por asignatura) — vincula un Alumno con la Asignatura completada; validado por Administración. Ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`. Se emite uno por cada asignatura/módulo que el alumno completa, no uno único de carrera. Al emitirse, se genera un PDF del certificado y se envía por email al alumno como adjunto, además del aviso WebSocket inmediato.
 
 ## Pendiente de decidir
 
