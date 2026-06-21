@@ -1,104 +1,91 @@
-# Project structure
+# Estructura del proyecto
 
-> Package organization in Spring, reflecting the domain described in [`01-domain-design.md`](01-domain-design.md) and the decisions in [`02-architecture.md`](02-architecture.md).
+> Organización de paquetes en Spring, reflejando el dominio descrito en [`01-domain-design.md`](01-domain-design.md) y las decisiones de [`02-architecture.md`](02-architecture.md).
 
-## Approach: package by feature, not by technical layer
+## Enfoque: organización por dominio/feature, no por capa técnica
 
-A classic `controller/ service/ repository/` split works for a simple CRUD, but becomes a junk drawer once multiple related entities, events, and messaging are involved. Instead, each domain is self-contained: opening `submissions/` shows everything related to a Submission — controller, service, repository, events — without jumping across layers to follow one flow.
+La división clásica `controller/ service/ repository/` funciona para un CRUD simple, pero se convierte en un cajón de sastre en cuanto hay varias entidades relacionadas, eventos y mensajería de por medio. En cambio, cada dominio es autocontenido: abrir `entregas/` muestra todo lo relacionado con Entrega — controller, service, repository, eventos — sin tener que saltar entre capas para seguir un solo flujo.
 
-The transactional/scheduler split is **not** repeated inside every feature folder — it's a cross-cutting concern (who produces the event), so it lives in its own `scheduler/` package instead.
+La separación transaccional/scheduler **no se repite dentro de cada carpeta de dominio** — es una cuestión transversal (quién produce el evento), así que vive en su propio paquete `scheduler/`.
 
-## Structure
+## Estructura
 
 ```
-src/main/java/com/yourcompany/progressapi/
+src/main/java/com/tuempresa/progresoapi/
 │
-├── submissions/
-│   ├── SubmissionController.java
-│   ├── SubmissionService.java
-│   ├── SubmissionRepository.java
-│   ├── Submission.java                  (entity)
+├── entregas/
+│   ├── EntregaController.java
+│   ├── EntregaService.java
+│   ├── EntregaRepository.java
+│   ├── Entrega.java                  (entidad)
 │   └── events/
-│       ├── SubmissionCreatedEvent.java
-│       ├── SubmissionViewedEvent.java
-│       ├── SubmissionReturnedToDraftEvent.java
-│       └── ReviewStartedEvent.java
+│       ├── EntregaRealizadaEvent.java
+│       ├── EntregaVistaEvent.java
+│       ├── EntregaDevueltaABorradorEvent.java
+│       └── RevisionIniciadaEvent.java
 │
-├── inquiries/
-│   ├── InquiryController.java
-│   ├── InquiryService.java
-│   ├── InquiryRepository.java
-│   ├── Inquiry.java
+├── consultas/
+│   ├── ConsultaController.java
+│   ├── ConsultaService.java
+│   ├── ConsultaRepository.java
+│   ├── Consulta.java
 │   └── events/
-│       ├── InquiryCreatedEvent.java
-│       └── InquiryAnsweredEvent.java
+│       ├── ConsultaRealizadaEvent.java
+│       └── RespuestaConsultaPublicadaEvent.java
 │
-├── certificates/
-│   ├── CertificateController.java
-│   ├── CertificateService.java
-│   ├── CertificateRepository.java
-│   ├── Certificate.java
-│   ├── PdfGeneratorService.java          (certificate PDF generation)
-│   ├── EmailService.java                 (sends PDF as attachment)
+├── titulos/
+│   ├── TituloController.java
+│   ├── TituloService.java
+│   ├── TituloRepository.java
+│   ├── Titulo.java
+│   ├── PdfGeneratorService.java        (generación del PDF del certificado)
+│   ├── EmailService.java               (envío con adjunto)
 │   └── events/
-│       ├── CertificateEligibilityDetectedEvent.java
-│       └── CertificateIssuedEvent.java
+│       ├── TituloElegibilidadDetectadaEvent.java
+│       └── TituloEmitidoEvent.java
 │
-├── groups/                               (Subject + SubjectGroup + enrollment)
-│   ├── SubjectController.java
-│   ├── SubjectGroupController.java
+├── grupos/                             (Asignatura + GrupoAsignatura + matriculación)
+│   ├── AsignaturaController.java
+│   ├── GrupoAsignaturaController.java
 │   ├── ...Service.java / ...Repository.java
-│   ├── Subject.java
-│   └── SubjectGroup.java
+│   ├── Asignatura.java
+│   └── GrupoAsignatura.java
 │
-├── students/
-│   └── ... (basic Student CRUD, managed by Administration)
+├── alumnos/
+│   └── ... (CRUD básico de Alumno, gestionado por Administración)
 │
-├── instructors/
-│   └── ... (basic Instructor CRUD, managed by Administration)
+├── instructores/
+│   └── ... (CRUD básico de Instructor, gestionado por Administración)
 │
-├── scheduler/                            ← where the transactional/scheduler split shows
-│   ├── DeadlineApproachingJob.java
-│   ├── UnsubmittedDraftJob.java
-│   ├── InactivityDetectionJob.java
-│   ├── PendingCountJob.java
-│   ├── MonthlyReportJob.java
-│   └── CertificateEligibilityJob.java
+├── scheduler/                          ← aquí se ve la separación transaccional/scheduler
+│   ├── PlazoPorVencerJob.java
+│   ├── BorradorSinEnviarJob.java
+│   ├── InactividadDetectadaJob.java
+│   ├── RecuentoPendientesJob.java
+│   ├── InformeMensualJob.java
+│   └── TituloElegibilidadJob.java
 │
-├── messaging/                            (RabbitMQ config and infrastructure)
+├── messaging/                          (configuración e infraestructura RabbitMQ)
 │   ├── RabbitMQConfig.java
-│   ├── EventPublisher.java               (publishes any event to the broker)
-│   └── EventListener.java                (consumes and routes to WebSocket/email)
+│   ├── EventPublisher.java             (publica cualquier evento al broker)
+│   └── EventListener.java              (consume y enruta a WebSocket/email)
 │
 ├── websocket/
 │   ├── WebSocketConfig.java
-│   └── NotificationWebSocketService.java
+│   └── NotificacionWebSocketService.java
 │
-└── reports/                              (Administration: aggregated views)
-    ├── ReportController.java
-    └── ReportService.java
+└── informes/                           (Administración: vistas agregadas)
+    ├── InformeController.java
+    └── InformeService.java
 ```
 
-## Why this, not something else
+## Por qué esta estructura, no otra
 
-- **Each domain (`submissions/`, `inquiries/`, `certificates/`) is self-contained** — mirrors the entities already closed in the domain design.
-- **`scheduler/` is its own package, separate from the domains** — each job inside touches several domains at once (e.g. `MonthlyReportJob` reads from Submissions, Inquiries, and Certificates to build the report). Forcing it inside a single domain would be artificial.
-- **`messaging/` centralizes RabbitMQ** — any domain publishes events without knowing queue/exchange details, just calling `EventPublisher.publish(event)`.
-- **`reports/` is separate from `groups/`** — the Administration use case (aggregated views, no access to individual correction detail) is a distinct responsibility from "managing who's in which group".
+- **Cada dominio (`entregas/`, `consultas/`, `titulos/`) es autocontenido** — refleja directamente las entidades cerradas en el diseño de dominio.
+- **`scheduler/` es su propio paquete, separado de los dominios** — cada Job ahí dentro toca varios dominios a la vez (ej. `InformeMensualJob` lee de Entregas, Consultas y Títulos para construir el informe). Meterlo dentro de un solo dominio sería forzado.
+- **`messaging/` centraliza RabbitMQ** — cualquier dominio publica eventos sin conocer los detalles de colas/exchanges, solo llama a `EventPublisher.publish(evento)`.
+- **`informes/` separado de `grupos/`** — el caso de uso de Administración (vistas agregadas, sin acceso al detalle de cada corrección) es una responsabilidad distinta de "gestionar quién está en qué grupo".
 
-## Naming reference (Spanish domain terms → English code terms)
+## Pendiente de decidir
 
-| Domain term (docs) | Code term |
-|---|---|
-| Entrega | Submission |
-| Consulta | Inquiry |
-| Título / certificado | Certificate |
-| Asignatura | Subject |
-| GrupoAsignatura | SubjectGroup |
-| Alumno | Student |
-| Instructor | Instructor |
-| Administración | Administration |
-
-## Pending decisions
-
-- Whether `students/` and `instructors/` should merge into `groups/` instead of staying separate
+- Si `alumnos/` e `instructores/` deberían fusionarse con `grupos/` en vez de mantenerse separados
