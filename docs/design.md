@@ -54,36 +54,39 @@ flowchart TB
 ## Casos de uso por actor
 
 ### Alumno
-1. Entregar un ejercicio de un módulo → dispara `EntregaRealizada`
-2. Consultar el estado de sus entregas y el feedback recibido
-3. Recibir notificación en tiempo real cuando su entrega es corregida
-4. Solicitar/realizar una reentrega tras feedback
-5. Plantear una consulta/duda a su instructor → dispara `ConsultaRealizada`
-6. Recibir notificación cuando su título es emitido
+1. Crear un borrador de ejercicio (alta)
+2. Modificar un borrador existente, antes de entregarlo
+3. Borrar un borrador propio, antes de entregarlo
+4. Entregar un ejercicio de un módulo (cierra el borrador y lo convierte en entrega formal) → dispara `EntregaRealizada`
+5. Consultar el estado de sus entregas y el feedback recibido
+6. Recibir notificación en tiempo real cuando su entrega es corregida
+7. Solicitar/realizar una reentrega tras feedback
+8. Plantear una consulta/duda a su instructor → dispara `ConsultaRealizada`
+9. Recibir notificación cuando su título es emitido
 
 ### Instructor
-7. Ver entregas pendientes de corregir de su grupo asignado
-8. Marcar una entrega como "en revisión" (evita duplicar trabajo con otro instructor) → dispara `RevisionIniciada`
-9. Publicar una corrección con feedback → dispara `CorreccionPublicada`
-10. Recibir notificación en tiempo real de nuevas entregas de su grupo
-11. Recibir y responder consultas de alumnos → dispara `RespuestaConsultaPublicada`
-12. Consultar su informe mensual (incluye recuento de pendientes histórico y títulos emitidos a sus alumnos)
+10. Ver entregas pendientes de corregir de su grupo asignado
+11. Marcar una entrega como "en revisión" (evita duplicar trabajo con otro instructor) → dispara `RevisionIniciada`
+12. Publicar una corrección con feedback → dispara `CorreccionPublicada`
+13. Recibir notificación en tiempo real de nuevas entregas de su grupo
+14. Recibir y responder consultas de alumnos → dispara `RespuestaConsultaPublicada`
+15. Consultar su informe mensual (incluye recuento de pendientes histórico y títulos emitidos a sus alumnos)
 
 ### Personal de Administración
-13. Dar de alta/baja alumnos e instructores, asignar alumnos a grupos/instructores
-14. Consultar informe agregado de progreso por curso/módulo
-15. Configurar plazos de entrega por módulo (alimenta al Scheduler)
-16. Recibir alerta cuando un grupo entero muestra inactividad anómala
-17. Revisar candidatos a título (`TituloElegibilidadDetectada`) y validar la emisión real (`TituloEmitido`)
+16. Dar de alta/baja alumnos e instructores, asignar alumnos a grupos/instructores
+17. Consultar informe agregado de progreso por curso/módulo
+18. Configurar plazos de entrega por módulo (alimenta al Scheduler)
+19. Recibir alerta cuando un grupo entero muestra inactividad anómala
+20. Revisar candidatos a título (`TituloElegibilidadDetectada`) y validar la emisión real (`TituloEmitido`)
 
 ### Sistema / Scheduler
-18. Detectar alumnos sin actividad en X días → `InactividadDetectada`, notifica al instructor correspondiente
-19. Detectar plazos de módulo vencidos sin entrega → notifica a alumno e instructor
-20. Avisar de plazo por vencer (preventivo) → `PlazoPorVencer`, notifica al alumno
-21. Detectar entregas abandonadas en borrador → `BorradorSinEnviarDetectado`, notifica al alumno
-22. Generar recuento periódico de pendientes por instructor → `RecuentoPendientesActualizado`
-23. Generar informe mensual agregado para Administración → `InformeMensualGenerado`
-24. Detectar candidatos a título mensualmente → `TituloElegibilidadDetectada`
+21. Detectar alumnos sin actividad en X días → `InactividadDetectada`, notifica al instructor correspondiente
+22. Detectar plazos de módulo vencidos sin entrega → notifica a alumno e instructor
+23. Avisar de plazo por vencer (preventivo) → `PlazoPorVencer`, notifica al alumno
+24. Detectar entregas abandonadas en borrador → `BorradorSinEnviarDetectado`, notifica al alumno
+25. Generar recuento periódico de pendientes por instructor → `RecuentoPendientesActualizado`
+26. Generar informe mensual agregado para Administración → `InformeMensualGenerado`
+27. Detectar candidatos a título mensualmente → `TituloElegibilidadDetectada`
 
 ## Catálogo de eventos
 
@@ -111,7 +114,7 @@ flowchart TB
 
 ## Entidades centrales (preliminar)
 
-- **Entrega** — estado: `ENTREGADO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → ENTREGADO)`
+- **Entrega** — estado: `BORRADOR (creación/edición/borrado libre) → ENTREGADO → EN_REVISION → CORREGIDO → (REENTREGA_SOLICITADA → BORRADOR de nuevo)`
 - **Consulta** — ciclo propio: `REALIZADA → RESPONDIDA`
 - **Título** — ciclo propio: `ELEGIBILIDAD_DETECTADA → EMITIDO`
 
