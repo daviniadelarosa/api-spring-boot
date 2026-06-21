@@ -1,4 +1,4 @@
-# Diseño — Sistema de seguimiento de progreso con eventos en tiempo real
+# Diseño de dominio
 
 > Documento de trabajo. Punto de partida del diseño, sujeto a cambios a medida que se desarrolla.
 
@@ -8,22 +8,14 @@ API backend para una institución educativa (universitaria). Gestiona el ciclo d
 
 > Nota de alcance: "título" en este documento se refiere siempre a un **certificado de finalización por asignatura/módulo**, no a un título de carrera completa — eso último complicaría el dominio con conceptos (planes de estudio, requisitos entre asignaturas) que quedan fuera del alcance de este proyecto.
 
-El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, cuándo debe ser inmediato y cuándo puede ser agregado**, y modelar eso con una arquitectura de eventos coherente en lugar de lógica condicional dispersa por el código, de manera eficiente y coherente con la tecnología actual.
+El reto de diseño no es el CRUD en sí — es decidir **qué reacciona a qué, cuándo debe ser inmediato y cuándo puede ser agregado**, y modelar eso con una arquitectura de eventos coherente en lugar de lógica condicional dispersa por el código.
 
-## Decisiones de arquitectura
-
-| Decisión | Elegido | Alternativa descartada | Por qué |
-|---|---|---|---|
-| Mensajería entre eventos | RabbitMQ | Event Bus interno de Spring (`ApplicationEventPublisher`) | El bus interno es síncrono y vive solo dentro del proceso: si el servicio cae, los eventos pendientes se pierden, y no escala a varias instancias. RabbitMQ persiste mensajes y permite crecer a varios servicios sin rediseñar nada. |
-| Mensajería entre eventos | RabbitMQ | Kafka | Kafka está pensado para volúmenes y streaming que este dominio no tiene. Usarlo aquí sería sobre-ingeniería. |
-| Tiempo real hacia el cliente | WebSockets | Server-Sent Events (SSE) | SSE es unidireccional (servidor→cliente). Aquí hace falta bidireccionalidad real: ej. un instructor marca "revisando ahora" para evitar que otro instructor duplique trabajo. |
-| Notificaciones a Instructor sobre certificados | Informe mensual agregado | Notificación individual por certificado emitido | No todo evento necesita ser en tiempo real. Saber cuándo *no* usar push inmediato es tan parte del diseño como saber cuándo sí. |
-| Entrega del certificado | PDF generado + envío por email | Solo notificación WebSocket sin documento | El certificado es un documento que debe persistir y poder reenviarse, no un aviso efímero. El email es canal de *entrega del documento*, no un canal de notificación paralelo — el WebSocket sigue siendo el único aviso en tiempo real de que "tu certificado ya está". |
+Las decisiones técnicas que sostienen este dominio (mensajería, tiempo real, etc.) viven en [`02-architecture.md`](02-architecture.md).
 
 ## Actores
 
-- **Alumno** — entrega ejercicios, consulta progreso y notas, plantea dudas
-- **Instructor** — corrige entregas, gestiona su grupo, responde consultas
+- **Alumno** — entrega ejercicios, consulta progreso y notas, plantea dudas. Matriculado en varias asignaturas a la vez, cada una con su propio grupo e instructor.
+- **Instructor** — corrige entregas, gestiona sus grupos, responde consultas. Un instructor puede impartir varias asignaturas, y por tanto gestiona un grupo distinto por cada asignatura (no un único grupo fijo de alumnos).
 - **Personal de Administración** — gestiona matriculaciones y permisos, supervisa informes agregados, valida emisión de certificados de asignatura
 - **Sistema / Scheduler** — genera eventos automáticos basados en tiempo, no en una acción directa de un actor
 
@@ -34,14 +26,14 @@ Distinción central del sistema, y la que más pesa en la arquitectura:
 - **Eventos transaccionales**: los dispara una acción directa de un actor (Alumno o Instructor). Son la "conversación" natural entre ambos roles.
 - **Eventos de scheduler**: los dispara el paso del tiempo (un proceso programado), no una persona. Tienen un destinatario y una cadencia propios según el rol.
 
-Mezclar ambos tipos en el mismo flujo de código es un error común que delata diseño poco maduro. Aquí se modelan como productores de eventos distintos.
+Mezclar ambos tipos en el mismo flujo de código es un error común que delata diseño poco maduro. Aquí se modelan como productores de eventos distintos, y esa separación se refleja también en la estructura de paquetes ([`03-project-structure.md`](03-project-structure.md)).
 
 ```mermaid
 flowchart LR
     subgraph T["Eventos transaccionales"]
         direction LR
         AL[Alumno] -->|Entrega, Consulta| IN[Instructor]
-        IN -->|Vista, Corrección, Devolución, Respuesta| AL
+        IN -->|Vista, Revisión, Corrección, Devolución, Respuesta| AL
     end
 ```
 
@@ -82,17 +74,17 @@ flowchart TB
 9. Recibir notificación cuando se le emite el certificado de una asignatura completada
 
 ### Instructor
-10. Ver una entrega de su grupo (la apertura marca automáticamente como vista) → dispara `EntregaVista`
-11. Marcar una entrega como "en revisión" (evita duplicar trabajo con otro instructor) → dispara `RevisionIniciada`
+10. Ver una entrega de uno de sus grupos (la apertura marca automáticamente como vista) → dispara `EntregaVista`
+11. Marcar una entrega como "en revisión" (informa al alumno de que está siendo trabajada, aunque aún sin resolver) → dispara `RevisionIniciada`
 12. Publicar una corrección con feedback → dispara `CorreccionPublicada`
 13. Devolver una entrega a borrador, sin calificar, cuando el contenido es incorrecto o el alumno se ha confundido → dispara `EntregaDevueltaABorrador`
-14. Recibir notificación en tiempo real de nuevas entregas de sus grupo
-15. Recibir y responder consultas de alumnos → dispara `RespuestaConsultaPublicada`
-16. Consultar su informe mensual (incluye recuento de pendientes histórico y certificados de asignatura emitidos a sus alumnos)
+14. Recibir notificación en tiempo real de nuevas entregas, filtradas por la asignatura correspondiente
+15. Recibir y responder consultas de alumnos de cualquiera de sus asignaturas → dispara `RespuestaConsultaPublicada`
+16. Consultar su informe mensual, desglosado por asignatura (recuento de pendientes histórico y certificados emitidos por cada una)
 
 ### Personal de Administración
-17. Dar de alta/baja alumnos e instructores, asignar alumnos a grupos/instructores
-18. Consultar informe agregado de progreso por curso/módulo
+17. Dar de alta/baja alumnos e instructores, matricular alumnos en asignaturas y asignar instructor a cada grupo de asignatura
+18. Consultar informe agregado de progreso por curso/asignatura
 19. Configurar plazos de entrega por módulo (alimenta al Scheduler)
 20. Recibir alerta cuando un grupo entero muestra inactividad anómala
 21. Revisar candidatos a certificado de asignatura (`TituloElegibilidadDetectada`) y validar la emisión real (`TituloEmitido`)
@@ -112,9 +104,9 @@ flowchart TB
 
 | Evento | Disparado por | Notifica a |
 |---|---|---|
-| `EntregaRealizada` | Alumno | Instructor (WebSocket) + actualización de dashboard |
+| `EntregaRealizada` | Alumno | Instructor de esa asignatura (WebSocket) + actualización de dashboard |
 | `EntregaVista` | Instructor (al abrir la entrega) | Actualización de dashboard del Alumno (no necesariamente push inmediato) |
-| `RevisionIniciada` | Instructor | Otros instructores del mismo grupo (WebSocket) |
+| `RevisionIniciada` | Instructor | Alumno (WebSocket) — informativo: su entrega está en revisión, aún sin resolver |
 | `CorreccionPublicada` | Instructor | Alumno (WebSocket) — nota + comentarios |
 | `EntregaDevueltaABorrador` | Instructor | Alumno (WebSocket) — motivo del rechazo, sin nota |
 | `ConsultaRealizada` | Alumno | Instructor (WebSocket) |
@@ -144,10 +136,15 @@ flowchart TB
 
 ## Pendiente de decidir
 
-- Estructura de módulos/paquetes en Spring que refleje esta separación transaccional/scheduler
 - Modelo de permisos por rol (especialmente para Administración, que necesita vistas agregadas sin acceso al detalle de cada corrección)
 - Si el proceso de título necesita un paso intermedio de revisión manual o se valida en bloque
 - Si `EntregaVista` debe empujarse por WebSocket igual que el resto de eventos transaccionales, o si basta con que quede reflejado al consultar el dashboard (es una señal más débil que una corrección real, y empujarla en tiempo real podría ser ruido innecesario para el alumno)
 - Si `EntregaDevueltaABorrador` debe llevar un motivo obligatorio (texto libre) para que el alumno entienda qué falló, o basta con el cambio de estado
 - Qué librería de generación de PDF usar en Spring (ej. iText, Apache PDFBox, o plantilla HTML→PDF) y qué datos mínimos lleva el certificado (nombre, asignatura, fecha, posible firma/sello digital)
 - Qué servicio de envío de email usar (SMTP propio vía Spring Mail, o un proveedor externo tipo SendGrid/Mailgun) y cómo manejar reintentos si el envío falla
+
+## Decisiones cerradas (para no reabrir)
+
+- **Sin co-docencia**: cada grupo de asignatura tiene un único instructor asignado. No existe el caso de "avisar a otro instructor del mismo grupo" porque esa figura no existe.
+- **`RevisionIniciada` notifica al Alumno, no a otro instructor**: es informativo para que el alumno sepa que su entrega está siendo trabajada, sin necesidad de que exista un segundo instructor al que avisar.
+- **Entidad `GrupoAsignatura` definida**: vincula Asignatura + Instructor (único) + Alumnos matriculados. Resuelve a qué grupo pertenece cada Entrega/Consulta/Título.
